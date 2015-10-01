@@ -32,30 +32,47 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#ifndef CV_VIDEO_ENVIRONMENT_H
-#define CV_VIDEO_ENVIRONMENT_H
-
-#include <cv_video/Record.h>
-
-#include <ros/ros.h>
+#include <cv_video/subscriber.h>
 
 namespace cv_video
 {
 
-/**
- * \brief Create a recording request.
- * 
- * Request values are taken from environment parameters, or sensible defaults
- * if unavailable.
- */
-Record::Request params();
-
-template<class T> T param(const std::string& name, const T& fallback)
+Subscriber::Subscriber(image_transport::ImageTransport& transport,
+                       std::string &topic,
+                       uint32_t queue_size,
+                       Video::Callback callback,
+                       Video *video):
+  subscriber_(transport.subscribe(topic, queue_size, &Subscriber::imageCallback, this)),
+  callback_(callback),
+  video_(video)
 {
-  T value;
-  return (ros::param::get(name, value) ? value : fallback);
+  // Nothing to do.
+}
+
+Subscriber::~Subscriber()
+{
+  // Nothing to do.
+}
+
+void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& message)
+{
+  try
+  {
+    Frame frame(message);
+    callback_(*video_, frame);
+  }
+  catch (cv_bridge::Exception& e)
+  {
+    ROS_ERROR("cv_bridge exception: %s", e.what());
+  }
+  catch (cv::Exception& e)
+  {
+    ROS_ERROR("OpenCV exception: %s", e.what());
+  }
+  catch (...)
+  {
+    ROS_ERROR("Unknown error");
+  }
 }
 
 } // namespace cv_video
-
-#endif

@@ -32,30 +32,30 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <cv_video/recorder.h>
+#include <cv_video/camera_server.h>
+#include <cv_video/settings.h>
+
+#include <std_msgs/Bool.h>
 
 namespace cv_video
 {
 
-Recorder::Recorder(const std::string& path,
-                            const std::string& format,
-                            double fps,
-                            int width,
-                            int height):
-  recorder_(new cv::VideoWriter())
+void record(int argc, char** argv)
 {
-  int fourcc = CV_FOURCC(format[0], format[1], format[2], format[3]);
-  recorder_->open(path, fourcc, fps, cv::Size(width, height));
-}
+  ros::init(argc, argv, "record");
 
-Recorder::~Recorder()
-{
-  // Nothing to do.
-}
+  Video video;
 
-void Recorder::operator () (Video& video, Frame& frame)
-{
-  recorder_->write(frame.share());
+  video.record();
+
+  ros::spin();
 }
 
 } // namespace cv_video
+
+int main(int argc, char** argv)
+{
+  cv_video::record(argc, argv);
+
+  return 0;
+}

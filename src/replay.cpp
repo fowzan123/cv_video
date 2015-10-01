@@ -32,30 +32,70 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <cv_video/recorder.h>
+#include <cv_video/camera_server.h>
+#include <cv_video/settings.h>
+
+#include <std_msgs/Bool.h>
 
 namespace cv_video
 {
 
-Recorder::Recorder(const std::string& path,
-                            const std::string& format,
-                            double fps,
-                            int width,
-                            int height):
-  recorder_(new cv::VideoWriter())
+class Replay
 {
-  int fourcc = CV_FOURCC(format[0], format[1], format[2], format[3]);
-  recorder_->open(path, fourcc, fps, cv::Size(width, height));
-}
+  /** \brief Reference to the current ROS node. */
+  ros::NodeHandle node_;
 
-Recorder::~Recorder()
-{
-  // Nothing to do.
-}
+  /** \brief Subscriber object used to receiver pause / resume commands. */
+  ros::Subscriber subscriber_;
 
-void Recorder::operator () (Video& video, Frame& frame)
+  /** \brief Video control object. */
+  Video video_;
+
+  /** \brief Path to the replaying video. */
+  std::string path_;
+
+  /** \brief Whether the video is currently playing. */
+  bool playing_;
+
+
+  void callback(const std_msgs::BoolConstPtr &message)
+  {
+    if (message->data == playing_)
+      return;
+
+    playing_ = message->data;
+    if (playing_)
+      video_.resume(path_);
+    else
+      video_.pause(path_);
+  }
+
+public:
+  Replay():
+    path_(param::path()),
+    playing_(param::playing())
+  {
+    subscriber_ = node_.subscribe<std_msgs::Bool>(name::playing(), 1, &Replay::callback, this);
+    video_.replay(path_, name::image(), ros::shutdown);
+    if (!playing_)
+      video_.pause(path_);
+  }
+};
+
+void replay(int argc, char** argv)
 {
-  recorder_->write(frame.share());
+  ros::init(argc, argv, "replay");
+
+  Replay replay;
+
+  ros::spin();
 }
 
 } // namespace cv_video
+
+int main(int argc, char** argv)
+{
+  cv_video::replay(argc, argv);
+
+  return 0;
+}

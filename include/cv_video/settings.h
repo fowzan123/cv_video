@@ -32,30 +32,71 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <cv_video/recorder.h>
+#ifndef CV_VIDEO_SETTINGS_H
+#define CV_VIDEO_SETTINGS_H
+
+#include <cv_video/Record.h>
+
+#include <ros/ros.h>
+
+#include <opencv2/opencv.hpp>
+
+#include <string>
 
 namespace cv_video
 {
 
-Recorder::Recorder(const std::string& path,
-                            const std::string& format,
-                            double fps,
-                            int width,
-                            int height):
-  recorder_(new cv::VideoWriter())
+/**
+ * \brief Select the appropriate cv_bridge encoding for the given image.
+ */
+std::string encoding(const cv::Mat& image);
+
+/**
+ * \brief Create a recording request.
+ * 
+ * Request values are taken from environment parameters, or sensible defaults
+ * if unavailable.
+ */
+Record params();
+
+namespace name
 {
-  int fourcc = CV_FOURCC(format[0], format[1], format[2], format[3]);
-  recorder_->open(path, fourcc, fps, cv::Size(width, height));
+
+std::string image();
+
+std::string camcorder();
+
+std::string playing();
+
+std::string snapshot();
+
+} // namespace name
+
+namespace param
+{
+
+template<class T> T param(const std::string& name, const T& fallback)
+{
+  T value;
+  return (ros::param::get(name, value) ? value : fallback);
 }
 
-Recorder::~Recorder()
-{
-  // Nothing to do.
-}
+std::string encoding();
 
-void Recorder::operator () (Video& video, Frame& frame)
-{
-  recorder_->write(frame.share());
-}
+std::string format();
+
+double fps();
+
+std::string path();
+
+bool playing();
+
+int width();
+
+int height();
+
+} // namespace param
 
 } // namespace cv_video
+
+#endif

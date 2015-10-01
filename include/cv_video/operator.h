@@ -32,72 +32,31 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <cv_video/video_writer.h>
-using cv_video::VideoWriter;
+#ifndef CV_VIDEO_OPERATOR_H
+#define CV_VIDEO_OPERATOR_H
 
-#include <cv_video/Record.h>
-using cv_video::Record;
+#include <boost/shared_ptr.hpp>
 
-#include <cv_bridge/cv_bridge.h>
-
-#include <map>
-
-struct Recorder
+namespace cv_video
 {
-  /** \brief ROS node handler. */
-  ros::NodeHandle node_;
 
-  /** \brief Service advertiser object. */
-  ros::ServiceServer service_;
+/**
+ * \brief Superclass of all video function implementations.
+ */
+class Operator
+{
+public:
+  /** \brief Smart pointer type alias. */
+  typedef boost::shared_ptr<Operator> Ptr;
 
-  /** \brief Video feeds currently being recorded. */
-  std::map<std::string, VideoWriter::Ptr> feeds_;
-
-  Recorder()
-  {
-    std::string topic = node_.resolveName("camcorder");
-    service_ = node_.advertiseService(topic, &Recorder::record, this);
-  }
-
-  bool record(Record::Request& request, Record::Response& response)
-  {
-    ROS_INFO_STREAM("Request: record " << request.topic << " on \"" << request.path << '"');
-
-    try
-    {
-      feeds_[request.topic].reset(request.path != "" ? new VideoWriter(request) : NULL);
-      response.status = "";
-      return true;
-    }
-    catch (cv_bridge::Exception& e)
-    {
-      response.status = std::string("cv_bridge exception: ") + e.what();
-    }
-    catch (cv::Exception& e)
-    {
-      response.status = std::string("OpenCV exception: ") + e.what();
-    }
-    catch (ros::Exception& e)
-    {
-      response.status = std::string("ROS exception: ") + e.what();
-    }
-    catch (std::exception& e)
-    {
-      response.status = std::string("Base exception: ") + e.what();
-    }
-    catch (...)
-    {
-      response.status = "unknown error";
-    }
-
-    return false;
-  }
+  /**
+   * \brief Object destructor.
+   *
+   * Enforces polymorphism. Do not remove.
+   */
+  virtual ~Operator();
 };
 
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "recorder");
-  Recorder recorder;
-  ros::spin();
-  return 0;
-}
+} //namespace cv_video
+
+#endif

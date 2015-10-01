@@ -33,26 +33,27 @@
 *********************************************************************/
 
 #include <cv_video/camera.h>
+#include <cv_video/settings.h>
 
-#include <stdexcept>
+#include <boost/bind.hpp>
 
 namespace cv_video
 {
 
-Camera::Camera()
+Camera::Camera(bool spin_thread):
+  action_client_(new ActionClient(name::camcorder(), spin_thread)),
+  snapshot_client_(new SnapshotClient(name::snapshot(), spin_thread))
 {
-  exchange_.request.topic = "";
-  exchange_.request.path = "";
+  action_client_->waitForServer();
+  snapshot_client_->waitForServer();
 }
 
-Camera::Camera(const std::string& topic,
-               const std::string& path,
-               const std::string& format,
-               double fps,
-               int width,
-               int height)
+Camera::Camera(const std::string& name, bool spin_thread):
+  action_client_(new ActionClient(name, spin_thread)),
+  snapshot_client_(new SnapshotClient(name + "_snapshot", spin_thread))
 {
-  record(topic, path, format, fps, width, height);
+  action_client_->waitForServer();
+  snapshot_client_->waitForServer();
 }
 
 Camera::~Camera()
@@ -60,108 +61,98 @@ Camera::~Camera()
   stop();
 }
 
-cv::Mat Camera::operator () ()
+cv::Mat Camera::operator() ()
 {
-  return grab();
+  return snapshot().copy();
 }
 
-void Camera::callback(CvVideo& dispatcher, const cv::Mat& image)
+void Camera::send(Mode mode, const Record& request, ActionClient::SimpleFeedbackCallback feedback)
 {
-  frame_ = image;
+  static ActionClient::SimpleDoneCallback done = ActionClient::SimpleDoneCallback();
+  static ActionClient::SimpleActiveCallback active = ActionClient::SimpleActiveCallback();
+
+  CommandGoal goal;
+  goal.mode = mode;
+  goal.request = request;
+  action_client_->sendGoal(goal, done, active, feedback);
 }
 
-cv::Mat Camera::grab()
+Frame Camera::snapshot()
 {
-  frame_ = cv::Mat();
-  if (exchange_.request.topic == "")
-    return frame_;
+  SnapshotGoal goal;
+  snapshot_client_->sendGoal(goal);
+  snapshot_client_->waitForResult();
 
-  if (dispatcher_.get() == NULL)
+  SnapshotResultConstPtr result = snapshot_client_->getResult();
+  return Frame(result->image);
+}
+
+void Camera::record(Callback callback)
+{
+  record(param::path(), callback);
+}
+
+void Camera::record(const std::string& path, Callback callback)
+{
+  record(path,
+         param::format(),
+         param::fps(),
+         param::width(),
+         param::height(),
+         callback);
+}
+
+static void callbackHandler(Camera* camera, Camera::Callback callback, const sensor_msgs::Image& image)
+{
+  if (callback.empty())
+    return;
+
+  try
   {
-    dispatcher_.reset(new CvVideo());
-    dispatcher_->subscribe(exchange_.request.topic, &Camera::callback, this);
+    Frame frame(image);
+    callback(*camera, frame);
   }
-  
-  for (ros::Rate rate(params().fps); ros::ok();)
+  catch (cv_bridge::Exception& e)
   {
-    ros::spinOnce();
-    if (!frame_.empty())
-      return frame_;
-    
-    rate.sleep();
+    ROS_ERROR("cv_bridge exception: %s", e.what());
+  }
+  catch (cv::Exception& e)
+  {
+    ROS_ERROR("OpenCV exception: %s", e.what());
+  }
+  catch (...)
+  {
+    ROS_ERROR("Unknown error");
   }
 }
 
-void Camera::open()
+static void feedbackHandler(Camera* camera, Camera::Callback callback, const CommandFeedbackConstPtr& feedback)
 {
-  open(node_.resolveName("image"));
-}
-
-void Camera::open(const std::string& topic)
-{
-  dispatcher_.reset();
-  exchange_.request.topic = topic;
-}
-
-void Camera::close()
-{
-  stop();
-  dispatcher_.reset();
-  exchange_.request.topic = "";
-}
-
-void Camera::record()
-{
-  Record::Request request = params();
-
-  if (exchange_.request.topic == "")
-    open(request.topic);
-
-  record(request.path,
-         request.format,
-         request.fps,
-         request.width,
-         request.height);
+  callbackHandler(camera, callback, feedback->frame);
 }
 
 void Camera::record(const std::string& path,
                     const std::string& format,
                     double fps,
                     int width,
-                    int height)
+                    int height,
+                    Callback callback)
 {
-    exchange_.request.path = path;
-    exchange_.request.format = format;
-    exchange_.request.fps = fps;
-    exchange_.request.width = width;
-    exchange_.request.height = height;
+  Record request;
+  request.path = path;
+  request.format = format;
+  request.fps = fps;
+  request.width = width;
+  request.height = height;
 
-    std::string name = node_.resolveName("camcorder");
-    client_ = node_.serviceClient<cv_video::Record>(name);
-    if (!client_.call(exchange_))
-      throw std::runtime_error(exchange_.response.status);
-}
-
-void Camera::record(const std::string& topic,
-                    const std::string& path,
-                    const std::string& format,
-                    double fps,
-                    int width,
-                    int height)
-{
-  open(topic);
-  record(path, format, fps, width, height);
+  send(RECORD, request, boost::bind(feedbackHandler, this, callback, _1));
 }
 
 void Camera::stop()
 {
-  if (exchange_.request.path == "")
-    return;
+  static ActionClient::SimpleFeedbackCallback feedback = ActionClient::SimpleFeedbackCallback();
 
-  exchange_.request.path = "";
-
-  if (!client_.call(exchange_))
-    ROS_ERROR("Error stopping video record: %s", exchange_.response.status.c_str());
+  send(STOP, Record(), feedback);
 }
 
 } // namespace cv_video

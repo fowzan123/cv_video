@@ -32,27 +32,13 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <cv_video/environment.h>
+#include <cv_video/camera_server.h>
+using cv_video::CameraServer;
 
-#include <boost/filesystem.hpp>
-using boost::filesystem::current_path;
-
-namespace cv_video
+int main(int argc, char** argv)
 {
-
-Record::Request params()
-{
-  ros::NodeHandle node;
-  
-  Record::Request request;
-  request.topic = node.resolveName("image");
-  request.path = param<std::string>("~path", (current_path() / "video.mpg").native());
-  request.format = param<std::string>("~format", "MPEG");
-  request.fps = param<double>("~fps", 30.0);
-  request.width = param<int>("~width", 640);
-  request.height = param<int>("~height", 480);
-  
-  return request;
+  ros::init(argc, argv, "recorder");
+  CameraServer server;
+  ros::spin();
+  return 0;
 }
-
-} // namespace cv_video

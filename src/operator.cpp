@@ -32,30 +32,14 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <cv_video/recorder.h>
+#include <cv_video/operator.h>
 
 namespace cv_video
 {
 
-Recorder::Recorder(const std::string& path,
-                            const std::string& format,
-                            double fps,
-                            int width,
-                            int height):
-  recorder_(new cv::VideoWriter())
-{
-  int fourcc = CV_FOURCC(format[0], format[1], format[2], format[3]);
-  recorder_->open(path, fourcc, fps, cv::Size(width, height));
-}
-
-Recorder::~Recorder()
+Operator::~Operator()
 {
   // Nothing to do.
 }
 
-void Recorder::operator () (Video& video, Frame& frame)
-{
-  recorder_->write(frame.share());
-}
-
-} // namespace cv_video
+} //namespace cv_video

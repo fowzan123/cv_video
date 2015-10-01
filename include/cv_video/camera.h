@@ -35,78 +35,63 @@
 #ifndef CV_VIDEO_CAMERA_H
 #define CV_VIDEO_CAMERA_H
 
-#include <cv_video/cv_video.h>
+#include <cv_video/frame.h>
+#include <cv_video/CommandAction.h>
+#include <cv_video/SnapshotAction.h>
 
 #include <ros/ros.h>
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/image_encodings.h>
+#include <actionlib/client/simple_action_client.h>
 
-#include <opencv2/opencv.hpp>
+#include <boost/function.hpp>
+#include <boost/shared_ptr.hpp>
 
 namespace cv_video
 {
 
 class Camera
 {
+  typedef actionlib::SimpleActionClient<CommandAction> ActionClient;
+
+  typedef actionlib::SimpleActionClient<SnapshotAction> SnapshotClient;
+
+  enum Mode
+  {
+    OPEN,
+    RECORD,
+    STOP
+  };
+
   /** \brief Reference to the current ROS node. */
   ros::NodeHandle node_;
 
-  /** \brief Object used to communicate with the service. */
-  ros::ServiceClient client_;
+  /** \brief Action client. */
+  boost::shared_ptr<ActionClient> action_client_;
 
-  /** \brief Data exchanged with the service. */
-  cv_video::Record exchange_;
-  
-  /** \brief Connection to video feed. */
-  CvVideo::Ptr dispatcher_;
-  
-  /** \brief Last frame recovered from the video feed, if any. */
-  cv::Mat frame_;
+  /** \brief Action client for retrieving individual camera snapshots. */
+  boost::shared_ptr<SnapshotClient> snapshot_client_;
   
   /**
-   * \brief Callback function for retrieving images from a video topic.
+   * \brief Send an action request to the server.
    */
-  void callback(CvVideo& dispatcher, const cv::Mat& image);
+  void send(Mode mode, const Record& request, ActionClient::SimpleFeedbackCallback feedback);
 
-public:    
+public:
+  /** \brief Callback type to fetch frames as they are recorded */
+  typedef boost::function<void(Camera&, Frame&)> Callback;
+
   /** \brief Default constructor. */
-  Camera();
+  Camera(bool spin_thread = true);
 
-  /** \brief Creates a new camera and start recording immediately. */
-  Camera(const std::string& topic,
-         const std::string& path,
-         const std::string& format,
-         double fps,
-         int width,
-         int height);
+  /** \brief Creates a new camera connected to the given server. */
+  Camera(const std::string &name, bool spin_thread = true);
 
   /** \brief Object destructor. */
   virtual ~Camera();
 
   /**
-   * \brief Returns a single frame from the video feed.
+   * \brief Return a camera snapshot as an OpenCV image.
    */
-  cv::Mat operator () ();
-  
-  /**
-   * \brief Returns a single frame from the video feed.
-   */
-  cv::Mat grab();
-  
-  /**
-   * \brief Connect this camera object to the default video feed.
-   */
-  void open();
-
-  /**
-   * \brief Connect this camera object to the given video feed.
-   */
-  void open(const std::string& topic);
-
-  /**
-   * \brief Disconnect this camera object from the current video feed.
-   */
-  void close();
+  cv::Mat operator() ();
 
   /**
    * \brief Starts a new recording.
@@ -114,25 +99,31 @@ public:
    * Recording parameters are taken from environment parameters, or if these are unavailable,
    * set to reasonable defaults.
    */
-  void record();
+  void record(Callback callback = Callback());
+
+  /**
+   * \brief Starts a new recording to the given output file.
+   *
+   * Recording parameters are taken from environment parameters, or if these are unavailable,
+   * set to reasonable defaults.
+   */
+  void record(const std::string& path, Callback callback = Callback());
 
   /** \brief Starts a new recording. */
   void record(const std::string& path,
               const std::string& format,
               double fps,
               int width,
-              int height);
-
-  /** \brief Sets the video feed topic and starts a new recording. */
-  void record(const std::string& topic,
-              const std::string& path,
-              const std::string& format,
-              double fps,
-              int width,
-              int height);
+              int height,
+              Callback callback = Callback());
 
   /** \brief Stops an ongoing recording. */
   void stop();
+
+  /**
+   * \brief Return a frame from the connected camera.
+   */
+  Frame snapshot();
 };
 
 } // namespace cv_video

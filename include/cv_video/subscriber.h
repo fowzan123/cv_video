@@ -32,30 +32,49 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <cv_video/recorder.h>
+#ifndef CV_VIDEO_SUBSCRIBER_H
+#define CV_VIDEO_SUBSCRIBER_H
+
+#include <cv_video/video.h>
+#include <cv_video/operator.h>
 
 namespace cv_video
 {
 
-Recorder::Recorder(const std::string& path,
-                            const std::string& format,
-                            double fps,
-                            int width,
-                            int height):
-  recorder_(new cv::VideoWriter())
+class Subscriber: public Operator
 {
-  int fourcc = CV_FOURCC(format[0], format[1], format[2], format[3]);
-  recorder_->open(path, fourcc, fps, cv::Size(width, height));
-}
+  /** \brief Subscription to image topic. */
+  image_transport::Subscriber subscriber_;
 
-Recorder::~Recorder()
-{
-  // Nothing to do.
-}
+  /** \brief Subscription callback. */
+  Video::Callback callback_;
 
-void Recorder::operator () (Video& video, Frame& frame)
-{
-  recorder_->write(frame.share());
-}
+  /** \brief Pointer to the parent Video object. */
+  Video *video_;
+
+  /**
+   * \brief Image topic subscription callback.
+   */
+  void imageCallback(const sensor_msgs::ImageConstPtr& message);
+
+public:
+  /**
+   * \brief Create a new subscriber object.
+   */
+  Subscriber(image_transport::ImageTransport& transport,
+             std::string &topic,
+             uint32_t queue_size,
+             Video::Callback callback,
+             Video *video);
+
+  /**
+   * \brief Object detructor.
+   *
+   * Enforces polymorphism. Do not remove.
+   */
+  virtual ~Subscriber();
+};
 
 } // namespace cv_video
+
+#endif

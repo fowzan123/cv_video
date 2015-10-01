@@ -32,30 +32,56 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <cv_video/recorder.h>
+#include <cv_video/publisher.h>
+
+#include <cv_video/settings.h>
 
 namespace cv_video
 {
 
-Recorder::Recorder(const std::string& path,
-                            const std::string& format,
-                            double fps,
-                            int width,
-                            int height):
-  recorder_(new cv::VideoWriter())
-{
-  int fourcc = CV_FOURCC(format[0], format[1], format[2], format[3]);
-  recorder_->open(path, fourcc, fps, cv::Size(width, height));
-}
-
-Recorder::~Recorder()
+Publisher::Publisher():
+  index_(0)
 {
   // Nothing to do.
 }
 
-void Recorder::operator () (Video& video, Frame& frame)
+Publisher::Publisher(image_transport::ImageTransport& transport, std::string topic, bool latch):
+  publisher_(transport.advertise(topic, 1, latch)),
+  index_(0)
 {
-  recorder_->write(frame.share());
+  // Nothing to do.
 }
 
-} // namespace cv_video
+Publisher::~Publisher()
+{
+  // Nothing to do.
+}
+
+void Publisher::publish(const cv::Mat& image)
+{
+  cv_bridge::CvImage bridged;
+  bridged.header.seq = index_++;
+  bridged.header.stamp = ros::Time::now();
+  bridged.header.frame_id = "";
+  bridged.image = image;
+  bridged.encoding = encoding(image);
+
+  publisher_.publish(bridged.toImageMsg());
+}
+
+void Publisher::publish(const cv_bridge::CvImagePtr& image)
+{
+  publisher_.publish(image->toImageMsg());
+}
+
+void Publisher::publish(const cv_bridge::CvImageConstPtr& image)
+{
+  publisher_.publish(image->toImageMsg());
+}
+
+void Publisher::publish(const Frame& frame)
+{
+  publisher_.publish(frame.buffer());
+}
+
+} //namespace cv_video

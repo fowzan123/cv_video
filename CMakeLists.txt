@@ -5,13 +5,16 @@ project(cv_video)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  actionlib
+  actionlib_msgs
   cv_bridge
   image_transport
   message_generation
+  roscpp
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS atomic system thread)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -44,11 +47,9 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES Record.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -57,17 +58,10 @@ find_package(catkin REQUIRED COMPONENTS
 #   Service2.srv
 # )
 
-add_service_files(
-  FILES
-  Record.srv
-)
-
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
+add_action_files(
+  FILES Command.action Snapshot.action
+)
 
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
@@ -76,8 +70,7 @@ add_service_files(
 # )
 
 generate_messages(
-  DEPENDENCIES
-  std_msgs
+  DEPENDENCIES actionlib_msgs sensor_msgs std_msgs
 )
 
 ###################################
@@ -92,7 +85,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS "include/"
   LIBRARIES cv_camera
-  CATKIN_DEPENDS cv_bridge image_transport
+  CATKIN_DEPENDS actionlib_msgs cv_bridge image_transport
   DEPENDS system_lib
 )
 
@@ -104,8 +97,8 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS}
   "include/"
+  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
@@ -114,34 +107,41 @@ include_directories(
 # )
 
 add_library(cv_camera
-  "src/environment.cpp"
   "src/camera.cpp"
-  "src/cv_video.cpp"
+  "src/camera_server.cpp"
+  "src/frame.cpp"
+  "src/operator.cpp"
+  "src/publisher.cpp"
+  "src/subscriber.cpp"
+  "src/recorder.cpp"
+  "src/replayer.cpp"
+  "src/settings.cpp"
+  "src/video.cpp"
 )
 
 ## Declare a cpp executable
 # add_executable(cv_video_node src/cv_video_node.cpp)
 
-add_executable(recorder
-  "src/recorder.cpp"
-  "src/environment.cpp"
-  "src/cv_video.cpp"
-  "src/video_writer.cpp"
+add_executable(camcorder
+  "src/camcorder.cpp"
 )
 
-add_executable(service
-  "src/service.cpp"
-  "src/environment.cpp"
-  "src/cv_video.cpp"
-  "src/video_writer.cpp"
+add_executable(record
+  "src/record.cpp"
+)
+
+add_executable(replay
+  "src/replay.cpp"
 )
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(cv_video_node cv_video_generate_messages_cpp)
-add_dependencies(cv_camera cv_video_generate_messages_cpp)
-add_dependencies(recorder cv_video_generate_messages_cpp)
-add_dependencies(service cv_video_generate_messages_cpp)
+#add_dependencies(cv_camera cv_video_generate_messages_cpp)
+#add_dependencies(recorder cv_video_generate_messages_cpp)
+#add_dependencies(service cv_video_generate_messages_cpp)
+add_dependencies(cv_camera ${cv_video_EXPORTED_TARGETS})
+add_dependencies(camcorder ${cv_video_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(cv_video_node
@@ -149,15 +149,23 @@ add_dependencies(service cv_video_generate_messages_cpp)
 # )
 
 target_link_libraries(cv_camera
-    ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${boost_LIBRARIES}
 )
 
-target_link_libraries(recorder
-    ${catkin_LIBRARIES}
+target_link_libraries(camcorder
+  cv_camera
+  ${catkin_LIBRARIES}
 )
 
-target_link_libraries(service
-    ${catkin_LIBRARIES}
+target_link_libraries(record
+  cv_camera
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(replay
+  cv_camera
+  ${catkin_LIBRARIES}
 )
 
 #############

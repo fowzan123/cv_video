@@ -32,63 +32,36 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <cv_video/video_writer.h>
+#ifndef CV_VIDEO_RECORDER_H
+#define CV_VIDEO_RECORDER_H
 
-#include <cv_bridge/cv_bridge.h>
-
-namespace enc = sensor_msgs::image_encodings;
+#include <cv_video/video.h>
+#include <cv_video/operator.h>
 
 namespace cv_video
 {
-  
-VideoWriter::VideoWriter()
-{
-  Record::Request request = params();
-  start(
-    request.topic,
-    request.path,
-    request.format,
-    request.fps,
-    request.width,
-    request.height
-  );
-}
 
-VideoWriter::VideoWriter(const std::string& topic,
-                         const std::string& path,
-                         const std::string& format,
-                         double fps,
-                         int width,
-                         int height)
+class Recorder: public Operator
 {
-  start(topic, path, format, fps, width, height);
-}
+  boost::shared_ptr<cv::VideoWriter> recorder_;
 
-VideoWriter::VideoWriter(Record::Request& request)
-{
-  start(request.topic,
-        request.path,
-        request.format,
-        request.fps,
-        request.width,
-        request.height);
-}
+public:
+  Recorder(const std::string& path,
+           const std::string& format,
+           double fps,
+           int width,
+           int height);
 
-void VideoWriter::record(CvVideo& dispatcher, const cv::Mat& image)
-{
-  recorder_.write(image);
-}
+  /**
+   * \brief Object destructor.
+   *
+   * Enforces polymorphism. Do not remove.
+   */
+  virtual ~Recorder();
 
-void VideoWriter::start(const std::string& topic,
-                        const std::string& path,
-                        const std::string& format,
-                        double fps,
-                        int width,
-                        int height)
-{
-  int fourcc = CV_FOURCC(format[0], format[1], format[2], format[3]);
-  recorder_.open(path, fourcc, fps, cv::Size(width, height));
-  dispatcher_.subscribe(topic, &VideoWriter::record, this);
-}
-  
+  void operator () (Video& video, Frame& frame);
+};
+
 } // namespace cv_video
+
+#endif

@@ -32,30 +32,113 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <cv_video/recorder.h>
+#include <cv_video/settings.h>
+
+#include <cv_bridge/cv_bridge.h>
+
+#include <sensor_msgs/image_encodings.h>
+namespace enc = sensor_msgs::image_encodings;
+
+#include <boost/filesystem.hpp>
+using boost::filesystem::current_path;
 
 namespace cv_video
 {
 
-Recorder::Recorder(const std::string& path,
-                            const std::string& format,
-                            double fps,
-                            int width,
-                            int height):
-  recorder_(new cv::VideoWriter())
+std::string encoding(const cv::Mat& image)
 {
-  int fourcc = CV_FOURCC(format[0], format[1], format[2], format[3]);
-  recorder_->open(path, fourcc, fps, cv::Size(width, height));
+  switch (image.type())
+  {
+    case CV_8UC1:
+    {
+      return enc::MONO8;
+    }
+    case CV_8UC3:
+    {
+      return enc::BGR8;
+    }
+    default:
+    {
+      throw cv_bridge::Exception("Incompatible encoding (not CV_8UC1 nor CV_8UC3)");
+    }
+  }
 }
 
-Recorder::~Recorder()
+Record params()
 {
-  // Nothing to do.
+  Record record;
+  record.path = param::path();
+  record.format = param::format();
+  record.fps = param::fps();
+  record.width = param::width();
+  record.height = param::height();
+
+  return record;
 }
 
-void Recorder::operator () (Video& video, Frame& frame)
+namespace name
 {
-  recorder_->write(frame.share());
+
+std::string image()
+{
+  return ros::names::resolve("image");
 }
+
+std::string camcorder()
+{
+  return ros::names::resolve("camcorder");
+}
+
+std::string playing()
+{
+  return ros::names::resolve("playing");
+}
+
+std::string snapshot()
+{
+  return ros::names::resolve("camcorder_snapshot");
+}
+
+} // namespace name
+
+namespace param
+{
+
+std::string encoding()
+{
+  return param<std::string>("~encoding", "");
+}
+
+std::string format()
+{
+  return param<std::string>("~format", "MPEG");
+}
+
+double fps()
+{
+  return param<double>("~fps", 30.0);
+}
+
+std::string path()
+{
+  return param<std::string>("~path", (current_path() / "video.mpg").native());
+}
+
+bool playing()
+{
+  return param<bool>("~playing", true);
+}
+
+int width()
+{
+  return param<int>("~width", 640);
+}
+
+int height()
+{
+  return param<int>("~height", 480);
+}
+
+} // namespace param
 
 } // namespace cv_video

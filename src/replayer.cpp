@@ -32,30 +32,108 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <cv_video/recorder.h>
+#include <cv_video/replayer.h>
+
+#include <cv_video/settings.h>
 
 namespace cv_video
 {
 
-Recorder::Recorder(const std::string& path,
-                            const std::string& format,
-                            double fps,
-                            int width,
-                            int height):
-  recorder_(new cv::VideoWriter())
+Replayer::Replayer(const std::string &path, Publisher::Ptr publisher, double fps, Callback callback)
 {
-  int fourcc = CV_FOURCC(format[0], format[1], format[2], format[3]);
-  recorder_->open(path, fourcc, fps, cv::Size(width, height));
+  start(path, publisher, fps, callback);
 }
 
-Recorder::~Recorder()
+Replayer::Replayer(const std::string &path, Publisher::Ptr publisher, Callback callback)
+{
+  start(path, publisher, 0, callback);
+}
+
+Replayer::Replayer(const std::string &path, Callback callback)
+{
+  start(path, callback);
+}
+
+Replayer::~Replayer()
 {
   // Nothing to do.
 }
 
-void Recorder::operator () (Video& video, Frame& frame)
+void Replayer::start(const std::string &path, Publisher::Ptr publisher, double fps, Callback callback)
 {
-  recorder_->write(frame.share());
+  start(path, callback);
+  publisher_ = publisher;
+
+  ros::NodeHandle node;
+  ros::Duration period(1.0 / (fps != 0 ? fps : param::fps()));
+  timer_ = node.createTimer(period, &Replayer::timerCallback, this);
+}
+
+void Replayer::start(const std::string &path, Callback callback)
+{
+  done_ = false;
+  callback_ = callback;
+  video_.reset(new cv::VideoCapture(path));
+}
+
+void Replayer::timerCallback(const ros::TimerEvent& event)
+{
+  cv::Mat frame;
+  if (video_->read(frame))
+    publisher_->publish(frame);
+  else
+    stop();
+}
+
+cv::Mat Replayer::operator () ()
+{
+  return next();
+}
+
+bool Replayer::done()
+{
+  return done_;
+}
+
+cv::Mat Replayer::next()
+{
+  if (done_)
+    return cv::Mat();
+
+  cv::Mat frame;
+  if (publisher_.get() != NULL)
+  {
+    video_->retrieve(frame, 0);
+    return frame;
+  }
+
+  if (video_->read(frame))
+    return frame;
+
+  stop();
+  return cv::Mat();
+}
+
+void Replayer::pause()
+{
+  timer_.stop();
+}
+
+void Replayer::resume()
+{
+  timer_.start();
+}
+
+void Replayer::stop()
+{
+  done_ = true;
+  video_.reset();
+
+  if (timer_.isValid())
+    timer_.stop();
+
+  if (callback_)
+    callback_();
 }
 
 } // namespace cv_video

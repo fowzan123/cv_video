@@ -32,30 +32,74 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#include <cv_video/recorder.h>
+#ifndef CV_VIDEO_PUBLISHER_H
+#define CV_VIDEO_PUBLISHER_H
+
+#include <cv_video/frame.h>
+#include <cv_video/operator.h>
+
+#include <cv_bridge/cv_bridge.h>
+
+#include <ros/ros.h>
+#include <image_transport/image_transport.h>
+
+#include <boost/shared_ptr.hpp>
 
 namespace cv_video
 {
 
-Recorder::Recorder(const std::string& path,
-                            const std::string& format,
-                            double fps,
-                            int width,
-                            int height):
-  recorder_(new cv::VideoWriter())
+class Publisher: public Operator
 {
-  int fourcc = CV_FOURCC(format[0], format[1], format[2], format[3]);
-  recorder_->open(path, fourcc, fps, cv::Size(width, height));
-}
+  /** \brief Image publisher. */
+  image_transport::Publisher publisher_;
 
-Recorder::~Recorder()
-{
-  // Nothing to do.
-}
+  /** \brief Incrementing message ID. */
+  uint32_t index_;
 
-void Recorder::operator () (Video& video, Frame& frame)
-{
-  recorder_->write(frame.share());
-}
+public:
+  /** \brief Smart pointer type alias. */
+  typedef boost::shared_ptr<Publisher> Ptr;
 
-} // namespace cv_video
+  /**
+   * \brief Default constructor.
+   */
+  Publisher();
+
+  /**
+   * \brief Create a new publisher connected to the given topic.
+   *
+   * If the \c latch argument is \c true, published images are latched to the destination topic.
+   */
+  Publisher(image_transport::ImageTransport& transport, std::string topic, bool latch = false);
+
+  /**
+   * \brief Object destructor.
+   *
+   * Enforces polymorphism. Do not remove.
+   */
+  virtual ~Publisher();
+
+  /**
+   * \brief Publish the given image.
+   */
+  void publish(const cv::Mat& image);
+
+  /**
+   * \brief Publish the given image.
+   */
+  void publish(const cv_bridge::CvImagePtr& image);
+
+  /**
+   * \brief Publish the given image.
+   */
+  void publish(const cv_bridge::CvImageConstPtr& image);
+
+  /**
+   * \brief Publish the given image.
+   */
+  void publish(const Frame& frame);
+};
+
+} //namespace cv_video
+
+#endif

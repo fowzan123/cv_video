@@ -32,50 +32,78 @@
 *  POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************/
 
-#ifndef CV_VIDEO_VIDEO_WRITER_H
-#define CV_VIDEO_VIDEO_WRITER_H
+#ifndef CV_VIDEO_FRAME_H
+#define CV_VIDEO_FRAME_H
 
-#include <cv_video/cv_video.h>
+#include <cv_bridge/cv_bridge.h>
+
+#include <sensor_msgs/image_encodings.h>
 
 namespace cv_video
 {
 
-class VideoWriter
+class Frame
 {
-  /** \brief Access to the image channel. */
-  CvVideo dispatcher_;
-  
-  /** \brief Video recorder object. */
-  cv::VideoWriter recorder_;
+  /** \brief ROS image message. */
+  sensor_msgs::ImageConstPtr message_;
 
-  /** \brief Callback for the image channel. */
-  void record(CvVideo& dispatcher, const cv::Mat& image);
-  
+  /** \brief Copied CvImage. */
+  cv_bridge::CvImagePtr copied_;
+
 public:
-  /** \brief Smart pointer type alias. */
-  typedef boost::shared_ptr<VideoWriter> Ptr;
-  
-  /** \brief Creates a new video writer from environment parameters. */
-  VideoWriter();
-  
-  /** \brief Creates a new video writer from given arguments. */
-  VideoWriter(const std::string& topic,
-              const std::string& path,
-              const std::string& format,
-              double fps,
-              int width,
-              int height);
-  
-  /** \brief Creates a new video writer from a service request. */
-  VideoWriter(Record::Request& request);
-  
-  /** \brief Start a recording session. */
-  void start(const std::string& topic,
-             const std::string& path,
-             const std::string& format,
-             double fps,
-             int width,
-             int height);
+  /**
+   * \brief Default constructor.
+   */
+  Frame();
+
+  /**
+   * \brief Create a new frame from the given ROS image message.
+   */
+  Frame(const sensor_msgs::ImageConstPtr& message);
+
+  /**
+   * \brief Create a new frame from the given ROS image message.
+   */
+  Frame(const sensor_msgs::Image &image);
+
+  /**
+   * \brief Return a reference to the latest frame buffer.
+   */
+  sensor_msgs::ImageConstPtr buffer() const;
+
+  /**
+   * \brief Return a copied (modifiable) OpenCV image.
+   *
+   * Changes to the pointed object will be preserved in this frame.
+   */
+  cv::Mat copy();
+
+  /**
+   * \brief Return a copied (modifiable) CvImage.
+   *
+   * Changes to the pointed object will be preserved in this frame.
+   */
+  cv_bridge::CvImagePtr copyCvImage();
+
+  /**
+   * \brief Return a shared (non-modifiable) OpenCV image.
+   */
+  cv::Mat share();
+
+  /**
+   * \brief Return a shared (non-modifiable) CvImage.
+   */
+  cv_bridge::CvImageConstPtr shareCvImage() const;
+
+  /**
+   * \brief Return the sequential ID of the enclosed image.
+   */
+  uint32_t index() const;
+
+  /**
+   * \brief Update the image buffer of the copied CvImage enclosed in this object.
+   */
+  void set(const cv::Mat& image);
 };
 
 } // namespace cv_video
