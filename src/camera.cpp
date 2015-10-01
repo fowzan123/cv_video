@@ -41,18 +41,18 @@ namespace cv_video
 {
 
 Camera::Camera(bool spin_thread):
-  action_client_(new ActionClient(name::camcorder(), spin_thread)),
+  camera_client_(new CameraClient(name::camcorder(), spin_thread)),
   snapshot_client_(new SnapshotClient(name::snapshot(), spin_thread))
 {
-  action_client_->waitForServer();
+  camera_client_->waitForServer();
   snapshot_client_->waitForServer();
 }
 
 Camera::Camera(const std::string& name, bool spin_thread):
-  action_client_(new ActionClient(name, spin_thread)),
+  camera_client_(new CameraClient(name, spin_thread)),
   snapshot_client_(new SnapshotClient(name + "_snapshot", spin_thread))
 {
-  action_client_->waitForServer();
+  camera_client_->waitForServer();
   snapshot_client_->waitForServer();
 }
 
@@ -66,15 +66,15 @@ cv::Mat Camera::operator() ()
   return snapshot().copy();
 }
 
-void Camera::send(Mode mode, const Record& request, ActionClient::SimpleFeedbackCallback feedback)
+void Camera::send(Mode mode, const Record& request, CameraClient::SimpleFeedbackCallback feedback)
 {
-  static ActionClient::SimpleDoneCallback done = ActionClient::SimpleDoneCallback();
-  static ActionClient::SimpleActiveCallback active = ActionClient::SimpleActiveCallback();
+  static CameraClient::SimpleDoneCallback done = CameraClient::SimpleDoneCallback();
+  static CameraClient::SimpleActiveCallback active = CameraClient::SimpleActiveCallback();
 
   CommandGoal goal;
   goal.mode = mode;
   goal.request = request;
-  action_client_->sendGoal(goal, done, active, feedback);
+  camera_client_->sendGoal(goal, done, active, feedback);
 }
 
 Frame Camera::snapshot()
@@ -150,7 +150,7 @@ void Camera::record(const std::string& path,
 
 void Camera::stop()
 {
-  static ActionClient::SimpleFeedbackCallback feedback = ActionClient::SimpleFeedbackCallback();
+  static CameraClient::SimpleFeedbackCallback feedback = CameraClient::SimpleFeedbackCallback();
 
   send(STOP, Record(), feedback);
 }

@@ -50,7 +50,7 @@ namespace cv_video
 
 class Camera
 {
-  typedef actionlib::SimpleActionClient<CommandAction> ActionClient;
+  typedef actionlib::SimpleActionClient<CommandAction> CameraClient;
 
   typedef actionlib::SimpleActionClient<SnapshotAction> SnapshotClient;
 
@@ -65,7 +65,7 @@ class Camera
   ros::NodeHandle node_;
 
   /** \brief Action client. */
-  boost::shared_ptr<ActionClient> action_client_;
+  boost::shared_ptr<CameraClient> camera_client_;
 
   /** \brief Action client for retrieving individual camera snapshots. */
   boost::shared_ptr<SnapshotClient> snapshot_client_;
@@ -73,7 +73,7 @@ class Camera
   /**
    * \brief Send an action request to the server.
    */
-  void send(Mode mode, const Record& request, ActionClient::SimpleFeedbackCallback feedback);
+  void send(Mode mode, const Record& request, CameraClient::SimpleFeedbackCallback feedback);
 
 public:
   /** \brief Callback type to fetch frames as they are recorded */
