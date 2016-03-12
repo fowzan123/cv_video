@@ -174,6 +174,12 @@ public:
   void subscribe(const std::string& name, void(T::*callback)(Video&, Frame&), T* object);
 
   /**
+   * \brief Subscribe the given object callback under the given name.
+   */
+  template<class T>
+  void subscribe(const std::string& name, uint32_t queue_size, void(T::*callback)(Video&, Frame&), T* object);
+
+  /**
    * \brief Pause the given (playing) video.
    *
    * If there is no replaying video at the given path, or the given name does not
@@ -216,8 +222,14 @@ void Video::subscribe(void(T::*callback)(Video&, Frame&), T* object)
 template<class T>
 void Video::subscribe(const std::string& name, void(T::*callback)(Video&, Frame&), T* object)
 {
+  subscribe(name, 1, callback, object);
+}
+
+template<class T>
+void Video::subscribe(const std::string& name, uint32_t queue_size, void(T::*callback)(Video&, Frame&), T* object)
+{
   boost::function<void(T*, Video&, Frame&)> member_function = callback;
-  subscribe(name, boost::bind(member_function, object, _1, _2));
+  subscribe(name, queue_size, boost::bind(member_function, object, _1, _2));
 }
 
 } //namespace cv_video
