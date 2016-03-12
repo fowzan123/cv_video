@@ -106,7 +106,7 @@ namespace param
 
 std::string encoding()
 {
-  return param<std::string>("~encoding", "");
+  return param<std::string>("~encoding", enc::BGR8);
 }
 
 std::string format()
