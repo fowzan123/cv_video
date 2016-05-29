@@ -69,7 +69,7 @@ Record params()
   Record record;
   record.path = param::path();
   record.format = param::format();
-  record.fps = param::fps();
+  record.fps = param::framerate();
   record.width = param::width();
   record.height = param::height();
 
@@ -114,9 +114,9 @@ std::string format()
   return param<std::string>("~format", "MPEG");
 }
 
-double fps()
+double framerate()
 {
-  return param<double>("~fps", 30.0);
+  return param<double>("~framerate", 30.0);
 }
 
 std::string path()

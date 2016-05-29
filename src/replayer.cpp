@@ -65,7 +65,7 @@ void Replayer::start(const std::string &path, Publisher::Ptr publisher, double f
   publisher_ = publisher;
 
   ros::NodeHandle node;
-  ros::Duration period(1.0 / (fps != 0 ? fps : param::fps()));
+  ros::Duration period(1.0 / (fps != 0 ? fps : param::framerate()));
   timer_ = node.createTimer(period, &Replayer::timerCallback, this);
 }
 

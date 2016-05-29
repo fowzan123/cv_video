@@ -85,7 +85,7 @@ std::string encoding();
 
 std::string format();
 
-double fps();
+double framerate();
 
 std::string path();
 

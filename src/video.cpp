@@ -62,7 +62,7 @@ void Video::record()
 
 void Video::record(const std::string& path)
 {
-  record(path, param::format(), param::fps(), param::width(), param::height());
+  record(path, param::format(), param::framerate(), param::width(), param::height());
 }
 
 void Video::record(const Record& request)

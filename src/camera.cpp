@@ -96,7 +96,7 @@ void Camera::record(const std::string& path, Callback callback)
 {
   record(path,
          param::format(),
-         param::fps(),
+         param::framerate(),
          param::width(),
          param::height(),
          callback);
