@@ -36,6 +36,9 @@
 #include <cv_video/video.h>
 #include <cv_video/settings.h>
 
+#include <sensor_msgs/image_encodings.h>
+namespace enc = sensor_msgs::image_encodings;
+
 namespace cv_video
 {
 
@@ -68,10 +71,15 @@ cv::Mat Frame::copy()
   return copyCvImage()->image;
 }
 
+inline std::string encoding(const std::string &encoded)
+{
+  return (encoded == enc::RGB8 ? enc::BGR8 : encoded);
+}
+
 cv_bridge::CvImagePtr Frame::copyCvImage()
 {
   if (copied_.get() == NULL)
-    copied_ = cv_bridge::toCvCopy(message_, param::encoding());
+    copied_ = cv_bridge::toCvCopy(message_, encoding(message_->encoding));
 
   return copied_;
 }
@@ -83,7 +91,7 @@ cv::Mat Frame::share()
 
 cv_bridge::CvImageConstPtr Frame::shareCvImage() const
 {
-  return cv_bridge::toCvShare(message_, param::encoding());
+  return cv_bridge::toCvShare(message_, encoding(message_->encoding));
 }
 
 uint32_t Frame::index() const
