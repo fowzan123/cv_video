@@ -33,15 +33,41 @@
 *********************************************************************/
 
 #include <cv_video/recorder.h>
+#include <cv_video/settings.h>
 
 namespace cv_video
 {
 
+Recorder::Recorder():
+  recorder_(new cv::VideoWriter())
+{
+  std::string path = param::path();
+  std::string format = param::format();
+  double fps = param::framerate();
+  int width = param::width();
+  int height = param::height();
+
+  int fourcc = CV_FOURCC(format[0], format[1], format[2], format[3]);
+  recorder_->open(path, fourcc, fps, cv::Size(width, height));
+}
+
+Recorder::Recorder(const std::string& path):
+  recorder_(new cv::VideoWriter())
+{
+  std::string format = param::format();
+  double fps = param::framerate();
+  int width = param::width();
+  int height = param::height();
+
+  int fourcc = CV_FOURCC(format[0], format[1], format[2], format[3]);
+  recorder_->open(path, fourcc, fps, cv::Size(width, height));
+}
+
 Recorder::Recorder(const std::string& path,
-                            const std::string& format,
-                            double fps,
-                            int width,
-                            int height):
+                   const std::string& format,
+                   double fps,
+                   int width,
+                   int height):
   recorder_(new cv::VideoWriter())
 {
   int fourcc = CV_FOURCC(format[0], format[1], format[2], format[3]);
@@ -51,6 +77,11 @@ Recorder::Recorder(const std::string& path,
 Recorder::~Recorder()
 {
   // Nothing to do.
+}
+
+void Recorder::operator () (Frame& frame)
+{
+  recorder_->write(frame.share());
 }
 
 void Recorder::operator () (Video& video, Frame& frame)

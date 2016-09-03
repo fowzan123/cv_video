@@ -46,6 +46,19 @@ class Recorder: public Operator
   boost::shared_ptr<cv::VideoWriter> recorder_;
 
 public:
+  /**
+   * \brief Default constructor.
+   */
+  Recorder();
+
+  /**
+   * \brief Create a new recorder writing to the given file.
+   */
+  Recorder(const std::string& path);
+
+  /**
+   * \brief Create a new recorder configured to the given settings.
+   */
   Recorder(const std::string& path,
            const std::string& format,
            double fps,
@@ -58,6 +71,8 @@ public:
    * Enforces polymorphism. Do not remove.
    */
   virtual ~Recorder();
+
+  void operator () (Frame& frame);
 
   void operator () (Video& video, Frame& frame);
 };
