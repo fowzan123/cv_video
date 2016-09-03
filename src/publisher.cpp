@@ -46,7 +46,7 @@ Publisher::Publisher():
 }
 
 Publisher::Publisher(image_transport::ImageTransport& transport, std::string topic, bool latch):
-  publisher_(transport.advertise(topic, 1, latch)),
+  publisher_(transport.advertise(topic, param::framerate(), latch)),
   index_(0)
 {
   // Nothing to do.
