@@ -39,6 +39,8 @@
 
 #include <ros/ros.h>
 
+#include <cv_bridge/cv_bridge.h>
+
 #include <opencv2/opencv.hpp>
 
 #include <string>
@@ -50,6 +52,11 @@ namespace cv_video
  * \brief Select the appropriate cv_bridge encoding for the given image.
  */
 std::string encoding(const cv::Mat& image);
+
+/**
+ * \brief Convert the image message's encoding to the appropriate OpenCV type.
+ */
+int encoding(const sensor_msgs::ImageConstPtr& message);
 
 /**
  * \brief Create a recording request.

@@ -34,8 +34,6 @@
 
 #include <cv_video/settings.h>
 
-#include <cv_bridge/cv_bridge.h>
-
 #include <sensor_msgs/image_encodings.h>
 namespace enc = sensor_msgs::image_encodings;
 
@@ -62,6 +60,18 @@ std::string encoding(const cv::Mat& image)
       throw cv_bridge::Exception("Incompatible encoding (not CV_8UC1 nor CV_8UC3)");
     }
   }
+}
+
+int encoding(const sensor_msgs::ImageConstPtr& message)
+{
+  const std::string &encoding = message->encoding;
+  if (encoding == enc::MONO8)
+    return CV_8UC1;
+
+  if (encoding == enc::BGR8)
+    return CV_8UC3;
+
+  throw cv_bridge::Exception("Incompatible encoding (not MONO8 nor BGR8)");
 }
 
 Record params()
