@@ -34,6 +34,8 @@
 
 #include <cv_video/subscriber.h>
 
+#include <stdexcept>
+
 namespace cv_video
 {
 
@@ -56,23 +58,8 @@ Subscriber::~Subscriber()
 
 void Subscriber::imageCallback(const sensor_msgs::ImageConstPtr& message)
 {
-  try
-  {
-    Frame frame(message);
-    callback_(*video_, frame);
-  }
-  catch (cv_bridge::Exception& e)
-  {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
-  }
-  catch (cv::Exception& e)
-  {
-    ROS_ERROR("OpenCV exception: %s", e.what());
-  }
-  catch (...)
-  {
-    ROS_ERROR("Unknown error");
-  }
+  Frame frame(message);
+  callback_(*video_, frame);
 }
 
 } // namespace cv_video
