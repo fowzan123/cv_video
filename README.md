@@ -1,7 +1,7 @@
 CV Video
 ========
 
-CV Video integrates [openCV](http://opencv.org/)'s [video recording and replaying API's](http://docs.opencv.org/2.4/modules/highgui/doc/reading_and_writing_images_and_video.html) to ROS.
+CV Video integrates [OpenCV](http://opencv.org/)'s [video recording and replaying API's](http://docs.opencv.org/2.4/modules/highgui/doc/reading_and_writing_images_and_video.html) to ROS.
 
 Build & Install
 ---------------
